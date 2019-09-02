@@ -2,7 +2,6 @@ const artistRouter = require('express').Router();
 const sqlite = require('sqlite3');
 const db = new sqlite.Database(process.env.TEST_DATABASE || './database.sqlite');
 
-
 /*************************/
 /* Routes with NO PARAMS */
 /*************************/
@@ -32,18 +31,8 @@ artistRouter.get('/', (req, res, next) => {
 
 // POST route for all Artists
 artistRouter.post('/', (req, res) => {
-
-	function validate(obj) {
-			if (!obj.name || !obj.dateOfBirth || !obj.biography) {
-				return false;
-			} else {
-				return true;
-			}
-	}
-
-	const checkArtist = validate(req.body.artist);
   
-	if (!checkArtist) {
+	if (!req.body.artist.name || !req.body.artist.dateOfBirth || !req.body.artist.biography) {
 			res.status(400).json({msg: 'Requires that you include: name, date of birth and biography'});
 	} else {
 	      db.run("INSERT INTO Artist(name, date_of_birth, biography, is_currently_employed) VALUES($_name, $_date_of_birth, $_biography, $_is_currently_employed)",
@@ -68,15 +57,10 @@ artistRouter.post('/', (req, res) => {
 										res.status(201).json({artist: row});
 										// res.json({artist: row});	  
 									}
-								// Close IF err ELSE & db.get
 							})
-			// Close IF err ELSE
 				}
-		// Close db.run 
 		})
-	// Close IF !checkArtist ELSE
 	}
-// Close route for POST 
 })
 
 
@@ -111,7 +95,6 @@ artistRouter.get('/:artistId', (req, res) => {
 
 // PUT route for :artistId
 artistRouter.put('/:artistId', (req, res, next) => {
-
 	if (!req.body.artist.name || !req.body.artist.dateOfBirth || !req.body.artist.biography) {
 		res.status(400).json({msg: `Please include name, dateOfBirth or biography`});
 	} else {
@@ -140,6 +123,19 @@ artistRouter.put('/:artistId', (req, res, next) => {
 			}
 		});	
 	}
+});
+
+
+// DELETE Route for :artistId
+artistRouter.delete('/:artistId', (req, res, next) => {
+	db.run("UPDATE Artist SET is_currently_employed = 0 WHERE id = " + req.params.artistId,
+		(err) => {
+			if (err) {
+				next(err);
+			} else {
+				res.status(200).json({msg: `Artist with ID of ${req.params.artistId} is no longer employed`}); 
+			}
+		})	
 });
 
 module.exports = artistRouter;
