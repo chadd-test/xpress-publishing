@@ -2,6 +2,11 @@ const artistRouter = require('express').Router();
 const sqlite = require('sqlite3');
 const db = new sqlite.Database(process.env.TEST_DATABASE || './database.sqlite');
 
+
+/*************************/
+/* Routes with NO PARAMS */
+/*************************/
+
 // GET route for all Artists
 artistRouter.get('/', (req, res, next) => {
 	let artists = [];
@@ -75,15 +80,21 @@ artistRouter.post('/', (req, res) => {
 })
 
 
-// ALL :artistId Routes
+
+
+/*******************************/
+/* ALL :artistId PARAM Routes */
+/*******************************/
+
 artistRouter.param('artistId', (req, res, next, artistId) => {
 	db.get("SELECT * FROM Artist WHERE Artist.id = $artistId",
 		{ $artistId: artistId },
 		(err, row) => { 
 			if (err) {
+				console.log('error with SELECT * From Artist');
 				next(err)	
 			} else if (!row) { 
-				res.status(404).json({msg:`No such artist with id: ${artistId}`}); 
+				res.status(404).json({msg:'No such artist with id: ' + artistId}); 
 			} else {
 				req.artist = row;
 				next();	
@@ -91,14 +102,44 @@ artistRouter.param('artistId', (req, res, next, artistId) => {
 		})
 });
 
+
 // GET route for :artistId
 artistRouter.get('/:artistId', (req, res) => {
 	res.json({artist:req.artist});
 });
 
+
 // PUT route for :artistId
-artistRouter.put('/:artistId', (req, res) => {
+artistRouter.put('/:artistId', (req, res, next) => {
+
+	if (!req.body.artist.name || !req.body.artist.dateOfBirth || !req.body.artist.biography) {
+		res.status(400).json({msg: `Please include name, dateOfBirth or biography`});
+	} else {
+		const sql = 'UPDATE Artist SET name = $_name, date_of_birth = $_dateOfBirth, biography = $_biography, is_currently_employed = $_employed WHERE Artist.id = $_id';
+		const values = {	
+					$_name: req.body.artist.name,	
+					$_dateOfBirth: req.body.artist.dateOfBirth,	
+					$_biography: req.body.artist.biography,
+					$_employed: req.body.artist.isCurrentlyEmployed? req.body.artist.isCurrentlyEmployed : 1,
+					$_id: parseInt(req.params.artistId) 
+		};
 	
+		db.run(sql, values, (err) => {
+			if (err) {
+				next(err);
+			} else {
+				db.get('SELECT * FROM Artist WHERE id = ' + values.$_id, 
+					(err, row) => {
+						if (err) {
+							next(err);
+						} else {
+							res.json({artist: row});
+						}
+					})
+
+			}
+		});	
+	}
 });
 
 module.exports = artistRouter;
