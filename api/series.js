@@ -79,6 +79,36 @@ seriesRouter.get('/:seriesId', (req, res) => {
 });
 
 // PUT request for :seriesId
+seriesRouter.put('/:seriesId', (req, res) => {
+	if (!req.body.series.name || !req.body.series.description) {
+		res.status(400).json({msg: `Please provide a name, description or both.`});
+	} else {
+		values = {
+			$_name: req.body.series.name,
+			$_description: req.body.series.description,
+			$_id: req.params.seriesId
+		};
+			db.run("UPDATE Series SET name=$_name, description=$_description WHERE id=$_id", values,
+				(err) => {
+					if (err) {
+						next(err);
+					} else {
+						db.get("SELECT * FROM Series WHERE id=" + values.$_id,
+							(err, row) => {
+								if (err) {
+									next(err);
+								} else {
+									res.json({series: row});
+								}
+
+							}
+						)
+					}
+				});
+	}
+})
+
+// DELETE route
 
 
 module.exports = seriesRouter;
