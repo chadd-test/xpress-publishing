@@ -133,7 +133,14 @@ artistRouter.delete('/:artistId', (req, res, next) => {
 			if (err) {
 				next(err);
 			} else {
-				res.status(200).json({msg: `Artist with ID of ${req.params.artistId} is no longer employed`}); 
+				db.get("SELECT * FROM Artist WHERE id = " + req.params.artistId,
+						  (err, row) => {
+								if (err) {
+									next(err);
+								} else {
+									res.json({artist: row})
+								}
+				});
 			}
 		})	
 });
